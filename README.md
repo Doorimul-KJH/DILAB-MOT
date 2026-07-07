@@ -86,11 +86,14 @@ Not implemented yet:
 Implemented:
 
 - MOTChallenge input/output utilities
+- MOT data model validation
 - IoU utilities for tlwh bounding boxes
 - Hungarian association utility for IoU matching
+- Kalman motion model wrapper
 
 Not yet implemented:
 
-- Kalman Filter
 - Full SORT track lifecycle
+- MOT public detection pipeline
 - TrackEval integration
+- Faster R-CNN execution
