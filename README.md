@@ -80,3 +80,17 @@ Not implemented yet:
 - Actual SORT tracking
 - Faster R-CNN execution or download
 - TrackEval execution or download
+
+## SORT Implementation Status
+
+Implemented:
+
+- MOTChallenge input/output utilities
+- IoU utilities for tlwh bounding boxes
+- Hungarian association utility for IoU matching
+
+Not yet implemented:
+
+- Kalman Filter
+- Full SORT track lifecycle
+- TrackEval integration
