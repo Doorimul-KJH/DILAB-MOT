@@ -1,0 +1,24 @@
+paper_id: sort
+paper_name: SORT
+title: "Simple Online and Realtime Tracking"
+mode: paper_reproduction
+
+pipeline:
+  detector: faster_rcnn_or_mot_public_detection
+  tracker: sort
+  motion_model: kalman_filter
+  association: hungarian_algorithm
+  matching_cost: iou
+
+evaluation:
+  format: mot_challenge
+  metrics:
+    - HOTA
+    - MOTA
+    - IDF1
+    - IDSW
+
+notes:
+  - "SORT paper mode must not use YOLO."
+  - "Detector and tracker are not user-composable in paper reproduction mode."
+  - "Selecting SORT should execute the SORT paper pipeline."

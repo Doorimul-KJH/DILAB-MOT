@@ -1,0 +1,14 @@
+numpy
+scipy
+pandas
+opencv-python
+matplotlib
+tqdm
+pyyaml
+filterpy
+torch
+torchvision
+PySide6
+pytest
+black
+ruff
