@@ -63,3 +63,19 @@ The dry-run command creates a folder under `outputs/runs/` with:
 - `paper_config.yaml`
 - `environment.json`
 - `run_manifest.json`
+
+## MOTChallenge Format Support
+
+The project currently supports MOTChallenge public detection loading and MOTChallenge tracking result writing.
+
+Supported now:
+
+- Load public detection `det.txt` rows in `frame, id, bb_left, bb_top, bb_width, bb_height, conf, x, y, z` format.
+- Group detections by 1-based frame index.
+- Write tracking results as `frame, id, bb_left, bb_top, bb_width, bb_height, conf, -1, -1, -1`.
+
+Not implemented yet:
+
+- Actual SORT tracking
+- Faster R-CNN execution or download
+- TrackEval execution or download
