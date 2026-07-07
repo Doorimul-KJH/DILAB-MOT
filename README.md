@@ -90,10 +90,12 @@ Implemented:
 - IoU utilities for tlwh bounding boxes
 - Hungarian association utility for IoU matching
 - Kalman motion model wrapper
+- SORT single-track lifecycle object
 
 Not yet implemented:
 
-- Full SORT track lifecycle
+- Full multi-object SORT tracker
 - MOT public detection pipeline
 - TrackEval integration
 - Faster R-CNN execution
+- GUI
