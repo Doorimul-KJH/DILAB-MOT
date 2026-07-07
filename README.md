@@ -91,10 +91,10 @@ Implemented:
 - Hungarian association utility for IoU matching
 - Kalman motion model wrapper
 - SORT single-track lifecycle object
+- Full frame-level multi-object SortTracker
 
 Not yet implemented:
 
-- Full multi-object SORT tracker
 - MOT public detection pipeline
 - TrackEval integration
 - Faster R-CNN execution
