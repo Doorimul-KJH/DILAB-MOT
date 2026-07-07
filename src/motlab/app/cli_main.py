@@ -12,6 +12,7 @@ if __package__ in {None, ""}:
 
 from motlab.core.experiment_runner import ExperimentRunner
 from motlab.core.registry import PaperPresetRegistry
+from motlab.pipelines.sort_mot_pipeline import run_sort_on_mot_detections
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,6 +39,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory where dry-run folders are created. Defaults to outputs/runs.",
     )
 
+    sort_mot_parser = subparsers.add_parser(
+        "run-sort-mot",
+        help="Run SORT on MOTChallenge public detection txt.",
+    )
+    sort_mot_parser.add_argument("--detections", required=True, help="MOTChallenge det.txt path.")
+    sort_mot_parser.add_argument("--output", required=True, help="Output tracking result txt path.")
+    sort_mot_parser.add_argument("--min-confidence", type=float, default=0.0)
+    sort_mot_parser.add_argument("--max-age", type=int, default=1)
+    sort_mot_parser.add_argument("--min-hits", type=int, default=3)
+    sort_mot_parser.add_argument("--iou-threshold", type=float, default=0.3)
+    sort_mot_parser.add_argument("--max-frame", type=int)
+
     return parser
 
 
@@ -56,6 +69,16 @@ def main(argv: list[str] | None = None) -> int:
         return _handle_inspect_paper(args.paper_id)
     if args.command == "run":
         return _handle_run(args.paper, dry_run=args.dry_run, output_root=args.output_root)
+    if args.command == "run-sort-mot":
+        return _handle_run_sort_mot(
+            detection_path=args.detections,
+            output_path=args.output,
+            min_confidence=args.min_confidence,
+            max_age=args.max_age,
+            min_hits=args.min_hits,
+            iou_threshold=args.iou_threshold,
+            max_frame=args.max_frame,
+        )
 
     parser.error(f"Unknown command: {args.command}")
     return 0
@@ -101,6 +124,33 @@ def _handle_run(paper_id: str, dry_run: bool, output_root: str | None = None) ->
 
     print("Dry-run completed. Tracking is not implemented yet.")
     print(f"Output folder: {result.output_dir}")
+    return 0
+
+
+def _handle_run_sort_mot(
+    detection_path: str,
+    output_path: str,
+    min_confidence: float,
+    max_age: int,
+    min_hits: int,
+    iou_threshold: float,
+    max_frame: int | None,
+) -> int:
+    result = run_sort_on_mot_detections(
+        detection_path=detection_path,
+        output_path=output_path,
+        min_confidence=min_confidence,
+        max_age=max_age,
+        min_hits=min_hits,
+        iou_threshold=iou_threshold,
+        max_frame=max_frame,
+    )
+
+    print("SORT MOT public detection run completed.")
+    print(f"Output file: {result.output_path}")
+    print(f"Processed frames: {result.frame_count}")
+    print(f"Input detections: {result.input_detection_count}")
+    print(f"Output track rows: {result.output_track_count}")
     return 0
 
 

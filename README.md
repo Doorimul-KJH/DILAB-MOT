@@ -49,13 +49,14 @@ This initial repository setup contains documentation, configuration, and a minim
 
 ## Current CLI
 
-The current CLI supports paper-preset inspection and dry-run experiment folder creation only. It does not run tracking yet.
+The current CLI supports paper-preset inspection, dry-run experiment folder creation, and MOT public detection based SORT execution.
 
 ```powershell
 python -m motlab.app.cli_main list-papers
 python -m motlab.app.cli_main inspect-paper sort
 python -m motlab.app.cli_main run --paper sort --dry-run
 python -m motlab.app.cli_main run --paper sort --dry-run --output-root outputs/runs
+python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output .tmp/sort_results.txt
 ```
 
 The dry-run command creates a folder under `outputs/runs/` with:
@@ -63,6 +64,8 @@ The dry-run command creates a folder under `outputs/runs/` with:
 - `paper_config.yaml`
 - `environment.json`
 - `run_manifest.json`
+
+The `run-sort-mot` command currently supports SORT execution from MOTChallenge public detections only. It does not execute Faster R-CNN and does not run TrackEval.
 
 ## MOTChallenge Format Support
 
@@ -92,10 +95,10 @@ Implemented:
 - Kalman motion model wrapper
 - SORT single-track lifecycle object
 - Full frame-level multi-object SortTracker
+- MOT public detection based SORT pipeline
 
 Not yet implemented:
 
-- MOT public detection pipeline
 - TrackEval integration
 - Faster R-CNN execution
 - GUI
