@@ -21,6 +21,12 @@ def associate_by_iou(iou_matrix: np.ndarray, iou_threshold: float) -> Associatio
     """Associate tracks and detections with Hungarian assignment over IoU."""
     if iou_matrix.ndim != 2:
         raise ValueError("iou_matrix must be a 2D array.")
+    if not 0.0 <= iou_threshold <= 1.0:
+        raise ValueError("iou_threshold must be between 0.0 and 1.0.")
+    if not np.all(np.isfinite(iou_matrix)):
+        raise ValueError("iou_matrix values must all be finite.")
+    if np.any((iou_matrix < 0.0) | (iou_matrix > 1.0)):
+        raise ValueError("iou_matrix values must be between 0.0 and 1.0.")
 
     track_count, detection_count = iou_matrix.shape
     if track_count == 0:
