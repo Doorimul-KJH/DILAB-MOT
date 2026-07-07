@@ -33,6 +33,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Create metadata only. Tracking is not implemented yet.",
     )
+    run_parser.add_argument(
+        "--output-root",
+        help="Directory where dry-run folders are created. Defaults to outputs/runs.",
+    )
 
     return parser
 
@@ -51,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "inspect-paper":
         return _handle_inspect_paper(args.paper_id)
     if args.command == "run":
-        return _handle_run(args.paper, dry_run=args.dry_run)
+        return _handle_run(args.paper, dry_run=args.dry_run, output_root=args.output_root)
 
     parser.error(f"Unknown command: {args.command}")
     return 0
@@ -59,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def _handle_list_papers() -> int:
     registry = PaperPresetRegistry()
-    print("사용 가능한 paper preset:")
+    print("Available paper presets:")
     for paper_id in registry.list_papers():
         config = registry.load_paper(paper_id)
         print(f"- {paper_id}: {config['paper_name']} ({config['title']})")
@@ -87,15 +91,15 @@ def _handle_inspect_paper(paper_id: str) -> int:
     return 0
 
 
-def _handle_run(paper_id: str, dry_run: bool) -> int:
+def _handle_run(paper_id: str, dry_run: bool, output_root: str | None = None) -> int:
     if not dry_run:
-        print("오류: 현재는 --dry-run만 지원합니다. 실제 tracking은 아직 구현하지 않았습니다.")
+        print("Error: only --dry-run is supported. Tracking is not implemented yet.")
         return 2
 
-    runner = ExperimentRunner()
+    runner = ExperimentRunner(output_root=output_root)
     result = runner.run(paper_id=paper_id, dry_run=True)
 
-    print("Dry-run 실행 완료. 실제 tracking은 아직 수행하지 않았습니다.")
+    print("Dry-run completed. Tracking is not implemented yet.")
     print(f"Output folder: {result.output_dir}")
     return 0
 

@@ -30,14 +30,17 @@ def test_cli_inspect_sort_shows_detector_and_yolo_note():
     assert "YOLO" in result.stdout
 
 
-def test_cli_dry_run_creates_output_files():
-    result = run_cli("run", "--paper", "sort", "--dry-run")
+def test_cli_dry_run_creates_output_files_under_requested_output_root(tmp_path):
+    output_root = tmp_path / "runs"
+
+    result = run_cli("run", "--paper", "sort", "--dry-run", "--output-root", str(output_root))
 
     assert result.returncode == 0
-    assert "outputs" in result.stdout
     output_line = next(line for line in result.stdout.splitlines() if "Output folder:" in line)
     output_dir = Path(output_line.split("Output folder:", 1)[1].strip())
 
+    assert output_dir.parent == output_root
     manifest = json.loads((output_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["run_id"] == output_dir.name
     assert manifest["paper_id"] == "sort"
     assert manifest["dry_run"] is True

@@ -55,6 +55,7 @@ The current CLI supports paper-preset inspection and dry-run experiment folder c
 python -m motlab.app.cli_main list-papers
 python -m motlab.app.cli_main inspect-paper sort
 python -m motlab.app.cli_main run --paper sort --dry-run
+python -m motlab.app.cli_main run --paper sort --dry-run --output-root outputs/runs
 ```
 
 The dry-run command creates a folder under `outputs/runs/` with:

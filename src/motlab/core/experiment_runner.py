@@ -44,12 +44,14 @@ class ExperimentRunner:
 
         paper_config = self.registry.load_paper(paper_id)
         created_at = datetime.now().astimezone()
-        output_dir = self._create_output_dir(paper_id=paper_id, created_at=created_at)
+        run_id = self._build_run_id(paper_id=paper_id, created_at=created_at)
+        output_dir = self._create_output_dir(run_id=run_id)
         environment = self._collect_environment()
         manifest = self._build_manifest(
             paper_config=paper_config,
             created_at=created_at,
             output_dir=output_dir,
+            run_id=output_dir.name,
         )
 
         self._write_yaml(output_dir / "paper_config.yaml", paper_config)
@@ -63,13 +65,15 @@ class ExperimentRunner:
             manifest=manifest,
         )
 
-    def _create_output_dir(self, paper_id: str, created_at: datetime) -> Path:
+    def _build_run_id(self, paper_id: str, created_at: datetime) -> str:
+        return f"{created_at.strftime('%Y%m%d_%H%M%S_%f')}_{paper_id}_dry_run"
+
+    def _create_output_dir(self, run_id: str) -> Path:
         self.output_root.mkdir(parents=True, exist_ok=True)
-        base_name = f"{created_at.strftime('%Y%m%d_%H%M%S')}_{paper_id}_dry_run"
-        output_dir = self.output_root / base_name
+        output_dir = self.output_root / run_id
         suffix = 1
         while output_dir.exists():
-            output_dir = self.output_root / f"{base_name}_{suffix}"
+            output_dir = self.output_root / f"{run_id}_{suffix}"
             suffix += 1
         output_dir.mkdir(parents=True)
         return output_dir
@@ -87,8 +91,10 @@ class ExperimentRunner:
         paper_config: dict[str, Any],
         created_at: datetime,
         output_dir: Path,
+        run_id: str,
     ) -> dict[str, Any]:
         return {
+            "run_id": run_id,
             "paper_id": paper_config["paper_id"],
             "paper_name": paper_config["paper_name"],
             "mode": paper_config["mode"],
