@@ -57,6 +57,7 @@ python -m motlab.app.cli_main inspect-paper sort
 python -m motlab.app.cli_main run --paper sort --dry-run
 python -m motlab.app.cli_main run --paper sort --dry-run --output-root outputs/runs
 python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output .tmp/sort_results.txt
+python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output-root outputs/runs --as-run-folder
 ```
 
 The dry-run command creates a folder under `outputs/runs/` with:
@@ -66,6 +67,13 @@ The dry-run command creates a folder under `outputs/runs/` with:
 - `run_manifest.json`
 
 The `run-sort-mot` command currently supports SORT execution from MOTChallenge public detections only. It does not execute Faster R-CNN and does not run TrackEval.
+
+When `run-sort-mot` is executed with `--as-run-folder`, it creates a timestamped run folder containing:
+
+- `tracks.txt`
+- `paper_config.yaml`
+- `environment.json`
+- `run_manifest.json`
 
 ## MOTChallenge Format Support
 
@@ -80,8 +88,7 @@ Supported now:
 
 Not implemented yet:
 
-- Actual SORT tracking
-- Faster R-CNN execution or download
+- Faster R-CNN detector execution or download
 - TrackEval execution or download
 
 ## SORT Implementation Status

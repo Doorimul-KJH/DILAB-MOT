@@ -12,7 +12,10 @@ if __package__ in {None, ""}:
 
 from motlab.core.experiment_runner import ExperimentRunner
 from motlab.core.registry import PaperPresetRegistry
-from motlab.pipelines.sort_mot_pipeline import run_sort_on_mot_detections
+from motlab.pipelines.sort_mot_pipeline import (
+    run_sort_mot_experiment,
+    run_sort_on_mot_detections,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -44,7 +47,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run SORT on MOTChallenge public detection txt.",
     )
     sort_mot_parser.add_argument("--detections", required=True, help="MOTChallenge det.txt path.")
-    sort_mot_parser.add_argument("--output", required=True, help="Output tracking result txt path.")
+    sort_mot_parser.add_argument("--output", help="Output tracking result txt path.")
+    sort_mot_parser.add_argument(
+        "--output-root",
+        default="outputs/runs",
+        help="Directory where SORT MOT run folders are created.",
+    )
+    sort_mot_parser.add_argument(
+        "--as-run-folder",
+        action="store_true",
+        help="Write tracks and metadata into a timestamped run folder.",
+    )
     sort_mot_parser.add_argument("--min-confidence", type=float, default=0.0)
     sort_mot_parser.add_argument("--max-age", type=int, default=1)
     sort_mot_parser.add_argument("--min-hits", type=int, default=3)
@@ -70,9 +83,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         return _handle_run(args.paper, dry_run=args.dry_run, output_root=args.output_root)
     if args.command == "run-sort-mot":
+        if args.as_run_folder and args.output:
+            parser.error("--output cannot be used with --as-run-folder")
+        if not args.as_run_folder and not args.output:
+            parser.error("--output is required unless --as-run-folder is used")
         return _handle_run_sort_mot(
             detection_path=args.detections,
             output_path=args.output,
+            output_root=args.output_root,
+            as_run_folder=args.as_run_folder,
             min_confidence=args.min_confidence,
             max_age=args.max_age,
             min_hits=args.min_hits,
@@ -129,13 +148,38 @@ def _handle_run(paper_id: str, dry_run: bool, output_root: str | None = None) ->
 
 def _handle_run_sort_mot(
     detection_path: str,
-    output_path: str,
+    output_path: str | None,
+    output_root: str,
+    as_run_folder: bool,
     min_confidence: float,
     max_age: int,
     min_hits: int,
     iou_threshold: float,
     max_frame: int | None,
 ) -> int:
+    if as_run_folder:
+        experiment_result = run_sort_mot_experiment(
+            detection_path=detection_path,
+            output_root=output_root,
+            min_confidence=min_confidence,
+            max_age=max_age,
+            min_hits=min_hits,
+            iou_threshold=iou_threshold,
+            max_frame=max_frame,
+        )
+        result = experiment_result.pipeline_result
+
+        print("SORT MOT public detection run completed.")
+        print(f"Output folder: {experiment_result.output_dir}")
+        print(f"Tracks file: {experiment_result.tracks_path}")
+        print(f"Processed frames: {result.frame_count}")
+        print(f"Input detections: {result.input_detection_count}")
+        print(f"Output track rows: {result.output_track_count}")
+        return 0
+
+    if output_path is None:
+        raise ValueError("output_path is required when as_run_folder is false.")
+
     result = run_sort_on_mot_detections(
         detection_path=detection_path,
         output_path=output_path,
