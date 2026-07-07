@@ -46,3 +46,19 @@ YOLO may be introduced later only as a separate demo or playground mode. It must
 CLI and GUI execution must share the same core PaperPipeline / ExperimentRunner logic. The GUI should be a frontend wrapper only; tracking logic belongs in the reusable core package.
 
 This initial repository setup contains documentation, configuration, and a minimal Python package skeleton. It does not implement the SORT algorithm yet.
+
+## Current CLI
+
+The current CLI supports paper-preset inspection and dry-run experiment folder creation only. It does not run tracking yet.
+
+```powershell
+python -m motlab.app.cli_main list-papers
+python -m motlab.app.cli_main inspect-paper sort
+python -m motlab.app.cli_main run --paper sort --dry-run
+```
+
+The dry-run command creates a folder under `outputs/runs/` with:
+
+- `paper_config.yaml`
+- `environment.json`
+- `run_manifest.json`
