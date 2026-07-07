@@ -37,3 +37,11 @@ def test_load_mot_public_detections_raises_value_error_for_bad_rows(tmp_path):
 
     with pytest.raises(ValueError, match="line 1"):
         load_mot_public_detections(bad_file)
+
+
+def test_load_mot_public_detections_rejects_frame_zero_rows(tmp_path):
+    bad_file = tmp_path / "frame_zero_det.txt"
+    bad_file.write_text("0,-1,10,20,30,40,0.90,-1,-1,-1\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="line 1"):
+        load_mot_public_detections(bad_file)

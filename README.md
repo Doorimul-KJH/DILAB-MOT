@@ -73,6 +73,7 @@ Supported now:
 - Load public detection `det.txt` rows in `frame, id, bb_left, bb_top, bb_width, bb_height, conf, x, y, z` format.
 - Group detections by 1-based frame index.
 - Write tracking results as `frame, id, bb_left, bb_top, bb_width, bb_height, conf, -1, -1, -1`.
+- Validate 1-based frame indices and positive tlwh bounding box sizes in shared data models.
 
 Not implemented yet:
 
