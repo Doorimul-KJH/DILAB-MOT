@@ -18,6 +18,15 @@ from motlab.datasets.motchallenge import (
 )
 from motlab.detectors.mot_public_detection import load_mot_public_detections
 from motlab.evaluation.mot_format import write_mot_tracking_results
+from motlab.evaluation.trackeval_layout import (
+    TrackEvalLayoutResult,
+    export_sort_run_to_trackeval_layout,
+)
+from motlab.evaluation.trackeval_runner import (
+    TrackEvalRunResult,
+    build_trackeval_mot_command,
+    run_trackeval_mot_command,
+)
 from motlab.trackers.sort.tracker import SortTracker
 
 
@@ -53,6 +62,21 @@ class SortSequenceRunResult:
 
     sequence_info: MOTChallengeSequenceInfo
     experiment_result: SortExperimentResult
+
+
+@dataclass(frozen=True)
+class SortSequenceEvaluationResult:
+    """End-to-end sequence SORT run and TrackEval command preparation result."""
+
+    sequence_info: MOTChallengeSequenceInfo
+    sequence_run_result: SortSequenceRunResult
+    trackeval_layout_result: TrackEvalLayoutResult
+    trackeval_run_result: TrackEvalRunResult
+    gt_folder: Path
+    trackers_folder: Path
+    seqmap_file: Path
+    evaluation_log_dir: Path
+    executed_trackeval: bool
 
 
 def run_sort_on_mot_detections(
@@ -203,6 +227,87 @@ def run_sort_on_mot_sequence(
     )
 
 
+def run_sort_sequence_evaluation(
+    sequence_dir: str | Path,
+    output_root: str | Path = "outputs/runs",
+    trackeval_output_root: str | Path = "outputs/trackeval",
+    trackeval_log_root: str | Path = "outputs/trackeval_logs",
+    trackeval_root: str | Path = "third_party/TrackEval",
+    gt_folder: str | Path | None = None,
+    tracker_name: str = "sort",
+    seqmap_name: str = "MOT17-test",
+    sequence_name: str | None = None,
+    min_confidence: float = 0.0,
+    max_age: int = 1,
+    min_hits: int = 3,
+    iou_threshold: float = 0.3,
+    execute_trackeval: bool = False,
+    timeout_seconds: int = 300,
+) -> SortSequenceEvaluationResult:
+    """Run SORT on one sequence and prepare or execute the TrackEval command."""
+    sequence_info = load_motchallenge_sequence_info(
+        sequence_dir,
+        require_detection=True,
+        require_gt=False,
+    )
+    sequence_run_result = run_sort_on_mot_sequence(
+        sequence_dir=sequence_info.sequence_dir,
+        output_root=output_root,
+        min_confidence=min_confidence,
+        max_age=max_age,
+        min_hits=min_hits,
+        iou_threshold=iou_threshold,
+    )
+    eval_sequence_name = sequence_name if sequence_name is not None else sequence_info.name
+    trackeval_layout_result = export_sort_run_to_trackeval_layout(
+        run_dir=sequence_run_result.experiment_result.output_dir,
+        sequence_name=eval_sequence_name,
+        output_root=trackeval_output_root,
+        tracker_name=tracker_name,
+        seqmap_name=seqmap_name,
+        overwrite=True,
+    )
+    gt_folder_path = Path(gt_folder) if gt_folder is not None else sequence_info.sequence_dir.parent
+    trackers_folder = trackeval_layout_result.tracker_result_path.parents[2]
+    seqmap_file = trackeval_layout_result.seqmap_path
+    command = build_trackeval_mot_command(
+        trackeval_root=trackeval_root,
+        gt_folder=gt_folder_path,
+        trackers_folder=trackers_folder,
+        seqmap_file=seqmap_file,
+        tracker_name=tracker_name,
+    )
+    evaluation_log_dir = Path(trackeval_log_root) / sequence_run_result.experiment_result.run_id
+    trackeval_run_result = run_trackeval_mot_command(
+        command=command,
+        output_dir=evaluation_log_dir,
+        execute=execute_trackeval,
+        timeout_seconds=timeout_seconds,
+    )
+    _append_evaluation_info_to_manifest(
+        sequence_run_result.experiment_result.manifest_path,
+        trackeval_layout_result=trackeval_layout_result,
+        trackeval_run_result=trackeval_run_result,
+        gt_folder=gt_folder_path,
+        trackers_folder=trackers_folder,
+        seqmap_file=seqmap_file,
+        tracker_name=tracker_name,
+        sequence_name_for_eval=trackeval_layout_result.sequence_name,
+    )
+
+    return SortSequenceEvaluationResult(
+        sequence_info=sequence_info,
+        sequence_run_result=sequence_run_result,
+        trackeval_layout_result=trackeval_layout_result,
+        trackeval_run_result=trackeval_run_result,
+        gt_folder=gt_folder_path,
+        trackers_folder=trackers_folder,
+        seqmap_file=seqmap_file,
+        evaluation_log_dir=evaluation_log_dir,
+        executed_trackeval=trackeval_run_result.executed,
+    )
+
+
 def _create_run_output_dir(output_root: Path, created_at: datetime) -> Path:
     output_root.mkdir(parents=True, exist_ok=True)
     run_id = f"{created_at.strftime('%Y%m%d_%H%M%S_%f')}_sort_mot"
@@ -280,6 +385,50 @@ def _append_sequence_info_to_manifest(
             "frame_rate": sequence_info.frame_rate,
             "image_width": sequence_info.image_width,
             "image_height": sequence_info.image_height,
+        }
+    )
+    _write_json(manifest_path, manifest)
+
+
+def _append_evaluation_info_to_manifest(
+    manifest_path: Path,
+    trackeval_layout_result: TrackEvalLayoutResult,
+    trackeval_run_result: TrackEvalRunResult,
+    gt_folder: Path,
+    trackers_folder: Path,
+    seqmap_file: Path,
+    tracker_name: str,
+    sequence_name_for_eval: str,
+) -> None:
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest.update(
+        {
+            "trackeval_layout_tracker_result_path": str(
+                trackeval_layout_result.tracker_result_path
+            ),
+            "trackeval_seqmap_path": str(trackeval_layout_result.seqmap_path),
+            "trackeval_command_path": (
+                str(trackeval_run_result.command_path)
+                if trackeval_run_result.command_path is not None
+                else None
+            ),
+            "trackeval_stdout_path": (
+                str(trackeval_run_result.stdout_path)
+                if trackeval_run_result.stdout_path is not None
+                else None
+            ),
+            "trackeval_stderr_path": (
+                str(trackeval_run_result.stderr_path)
+                if trackeval_run_result.stderr_path is not None
+                else None
+            ),
+            "trackeval_executed": trackeval_run_result.executed,
+            "trackeval_returncode": trackeval_run_result.returncode,
+            "gt_folder": str(gt_folder),
+            "trackers_folder": str(trackers_folder),
+            "seqmap_file": str(seqmap_file),
+            "tracker_name": tracker_name,
+            "sequence_name_for_eval": sequence_name_for_eval,
         }
     )
     _write_json(manifest_path, manifest)

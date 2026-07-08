@@ -24,6 +24,7 @@ from motlab.pipelines.sort_mot_pipeline import (
     run_sort_mot_experiment,
     run_sort_on_mot_detections,
     run_sort_on_mot_sequence,
+    run_sort_sequence_evaluation,
 )
 
 
@@ -89,6 +90,26 @@ def build_parser() -> argparse.ArgumentParser:
     sort_sequence_parser.add_argument("--max-age", type=int, default=1)
     sort_sequence_parser.add_argument("--min-hits", type=int, default=3)
     sort_sequence_parser.add_argument("--iou-threshold", type=float, default=0.3)
+
+    sort_sequence_eval_parser = subparsers.add_parser(
+        "run-sort-sequence-eval",
+        help="Run SORT on one sequence and prepare TrackEval command logs.",
+    )
+    sort_sequence_eval_parser.add_argument("--sequence-dir", required=True)
+    sort_sequence_eval_parser.add_argument("--output-root", default="outputs/runs")
+    sort_sequence_eval_parser.add_argument("--trackeval-output-root", default="outputs/trackeval")
+    sort_sequence_eval_parser.add_argument("--trackeval-log-root", default="outputs/trackeval_logs")
+    sort_sequence_eval_parser.add_argument("--trackeval-root", default="third_party/TrackEval")
+    sort_sequence_eval_parser.add_argument("--gt-folder")
+    sort_sequence_eval_parser.add_argument("--tracker-name", default="sort")
+    sort_sequence_eval_parser.add_argument("--seqmap-name", default="MOT17-test")
+    sort_sequence_eval_parser.add_argument("--sequence-name")
+    sort_sequence_eval_parser.add_argument("--min-confidence", type=float, default=0.0)
+    sort_sequence_eval_parser.add_argument("--max-age", type=int, default=1)
+    sort_sequence_eval_parser.add_argument("--min-hits", type=int, default=3)
+    sort_sequence_eval_parser.add_argument("--iou-threshold", type=float, default=0.3)
+    sort_sequence_eval_parser.add_argument("--execute-trackeval", action="store_true")
+    sort_sequence_eval_parser.add_argument("--timeout-seconds", type=int, default=300)
 
     trackeval_parser = subparsers.add_parser(
         "export-trackeval-layout",
@@ -186,6 +207,24 @@ def main(argv: list[str] | None = None) -> int:
             max_age=args.max_age,
             min_hits=args.min_hits,
             iou_threshold=args.iou_threshold,
+        )
+    if args.command == "run-sort-sequence-eval":
+        return _handle_run_sort_sequence_eval(
+            sequence_dir=args.sequence_dir,
+            output_root=args.output_root,
+            trackeval_output_root=args.trackeval_output_root,
+            trackeval_log_root=args.trackeval_log_root,
+            trackeval_root=args.trackeval_root,
+            gt_folder=args.gt_folder,
+            tracker_name=args.tracker_name,
+            seqmap_name=args.seqmap_name,
+            sequence_name=args.sequence_name,
+            min_confidence=args.min_confidence,
+            max_age=args.max_age,
+            min_hits=args.min_hits,
+            iou_threshold=args.iou_threshold,
+            execute_trackeval=args.execute_trackeval,
+            timeout_seconds=args.timeout_seconds,
         )
     if args.command == "export-trackeval-layout":
         return _handle_export_trackeval_layout(
@@ -370,6 +409,58 @@ def _handle_run_sort_sequence(
     print(f"processed frames: {pipeline_result.frame_count}")
     print(f"input detections: {pipeline_result.input_detection_count}")
     print(f"output track rows: {pipeline_result.output_track_count}")
+    return 0
+
+
+def _handle_run_sort_sequence_eval(
+    sequence_dir: str,
+    output_root: str,
+    trackeval_output_root: str,
+    trackeval_log_root: str,
+    trackeval_root: str,
+    gt_folder: str | None,
+    tracker_name: str,
+    seqmap_name: str,
+    sequence_name: str | None,
+    min_confidence: float,
+    max_age: int,
+    min_hits: int,
+    iou_threshold: float,
+    execute_trackeval: bool,
+    timeout_seconds: int,
+) -> int:
+    result = run_sort_sequence_evaluation(
+        sequence_dir=sequence_dir,
+        output_root=output_root,
+        trackeval_output_root=trackeval_output_root,
+        trackeval_log_root=trackeval_log_root,
+        trackeval_root=trackeval_root,
+        gt_folder=gt_folder,
+        tracker_name=tracker_name,
+        seqmap_name=seqmap_name,
+        sequence_name=sequence_name,
+        min_confidence=min_confidence,
+        max_age=max_age,
+        min_hits=min_hits,
+        iou_threshold=iou_threshold,
+        execute_trackeval=execute_trackeval,
+        timeout_seconds=timeout_seconds,
+    )
+
+    experiment_result = result.sequence_run_result.experiment_result
+    print("SORT sequence evaluation pipeline completed.")
+    print(f"sequence_name: {result.trackeval_layout_result.sequence_name}")
+    print(f"output_dir: {experiment_result.output_dir}")
+    print(f"tracks_path: {experiment_result.tracks_path}")
+    print(
+        "trackeval_tracker_result_path: "
+        f"{result.trackeval_layout_result.tracker_result_path}"
+    )
+    print(f"trackeval_seqmap_path: {result.trackeval_layout_result.seqmap_path}")
+    print(f"trackeval_command_path: {result.trackeval_run_result.command_path}")
+    print(f"trackeval_executed: {result.trackeval_run_result.executed}")
+    print(f"trackeval_returncode: {result.trackeval_run_result.returncode}")
+    print(f"message: {result.trackeval_run_result.message}")
     return 0
 
 

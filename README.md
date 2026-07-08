@@ -60,6 +60,7 @@ python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.t
 python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output-root outputs/runs --as-run-folder
 python -m motlab.app.cli_main inspect-mot-sequence --sequence-dir datasets/MOT17/train/MOT17-02-FRCNN
 python -m motlab.app.cli_main run-sort-sequence --sequence-dir datasets/MOT17/train/MOT17-02-FRCNN --output-root outputs/runs
+python -m motlab.app.cli_main run-sort-sequence-eval --sequence-dir datasets/MOT17/train/MOT17-02-FRCNN --trackeval-root third_party/TrackEval
 python -m motlab.app.cli_main export-trackeval-layout --run-dir outputs/runs/<run_id> --sequence-name MOT17-02 --output-root outputs/trackeval
 python -m motlab.app.cli_main check-trackeval --trackeval-root third_party/TrackEval
 python -m motlab.app.cli_main prepare-trackeval --trackeval-root third_party/TrackEval
@@ -102,6 +103,31 @@ The generated run folder follows the same SORT MOT run structure:
 - `run_manifest.json`
 
 The manifest records sequence metadata such as sequence name, sequence directory, sequence length, frame rate, and image size.
+
+## End-To-End Sequence Evaluation Pipeline
+
+`run-sort-sequence-eval` connects the local sequence workflow from SORT execution through TrackEval command logging:
+
+1. Inspect a MOTChallenge `sequence_dir`.
+2. Run SORT using `det/det.txt` public detections.
+3. Create a SORT run folder with `tracks.txt`.
+4. Export `tracks.txt` into the TrackEval-friendly result layout.
+5. Build the TrackEval MOTChallenge command.
+6. Store the TrackEval command log.
+
+```powershell
+python -m motlab.app.cli_main run-sort-sequence-eval --sequence-dir datasets/MOT17/train/MOT17-02-FRCNN --trackeval-root third_party/TrackEval --output-root outputs/runs --trackeval-output-root outputs/trackeval --trackeval-log-root outputs/trackeval_logs
+```
+
+By default this is a TrackEval dry-run. It writes `command.txt` under `outputs/trackeval_logs/<run_id>/` but does not execute TrackEval.
+
+Actual TrackEval execution happens only when `--execute-trackeval` is provided:
+
+```powershell
+python -m motlab.app.cli_main run-sort-sequence-eval --sequence-dir datasets/MOT17/train/MOT17-02-FRCNN --trackeval-root third_party/TrackEval --execute-trackeval
+```
+
+If the MOT17 GT dataset path is not prepared, actual TrackEval execution can fail. This stage does not parse metrics yet. It also does not execute Faster R-CNN or YOLO; it uses MOTChallenge `det/det.txt` public detections.
 
 ## TrackEval Layout Export
 
@@ -219,6 +245,7 @@ Implemented:
 - Full frame-level multi-object SortTracker
 - MOT public detection based SORT pipeline
 - MOTChallenge sequence adapter and sequence run CLI
+- End-to-end SORT sequence evaluation wrapper with TrackEval command dry-run
 
 Not yet implemented:
 
