@@ -12,6 +12,10 @@ from pathlib import Path
 from typing import Any
 
 from motlab.core.config import find_project_root
+from motlab.datasets.motchallenge import (
+    MOTChallengeSequenceInfo,
+    load_motchallenge_sequence_info,
+)
 from motlab.detectors.mot_public_detection import load_mot_public_detections
 from motlab.evaluation.mot_format import write_mot_tracking_results
 from motlab.trackers.sort.tracker import SortTracker
@@ -41,6 +45,14 @@ class SortExperimentResult:
     environment_path: Path
     paper_config_path: Path
     pipeline_result: SortPipelineResult
+
+
+@dataclass(frozen=True)
+class SortSequenceRunResult:
+    """Result returned by running SORT on one MOTChallenge sequence directory."""
+
+    sequence_info: MOTChallengeSequenceInfo
+    experiment_result: SortExperimentResult
 
 
 def run_sort_on_mot_detections(
@@ -157,6 +169,40 @@ def run_sort_mot_experiment(
     )
 
 
+def run_sort_on_mot_sequence(
+    sequence_dir: str | Path,
+    output_root: str | Path = "outputs/runs",
+    min_confidence: float = 0.0,
+    max_age: int = 1,
+    min_hits: int = 3,
+    iou_threshold: float = 0.3,
+) -> SortSequenceRunResult:
+    """Run SORT on the public detections inside one MOTChallenge sequence directory."""
+    sequence_info = load_motchallenge_sequence_info(
+        sequence_dir,
+        require_detection=True,
+        require_gt=False,
+    )
+    experiment_result = run_sort_mot_experiment(
+        detection_path=sequence_info.detection_path,
+        output_root=output_root,
+        min_confidence=min_confidence,
+        max_age=max_age,
+        min_hits=min_hits,
+        iou_threshold=iou_threshold,
+        max_frame=sequence_info.seq_length,
+    )
+    _append_sequence_info_to_manifest(
+        experiment_result.manifest_path,
+        sequence_info=sequence_info,
+    )
+
+    return SortSequenceRunResult(
+        sequence_info=sequence_info,
+        experiment_result=experiment_result,
+    )
+
+
 def _create_run_output_dir(output_root: Path, created_at: datetime) -> Path:
     output_root.mkdir(parents=True, exist_ok=True)
     run_id = f"{created_at.strftime('%Y%m%d_%H%M%S_%f')}_sort_mot"
@@ -219,3 +265,21 @@ def _build_run_manifest(
 
 def _write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _append_sequence_info_to_manifest(
+    manifest_path: Path,
+    sequence_info: MOTChallengeSequenceInfo,
+) -> None:
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest.update(
+        {
+            "sequence_name": sequence_info.name,
+            "sequence_dir": str(sequence_info.sequence_dir),
+            "seq_length": sequence_info.seq_length,
+            "frame_rate": sequence_info.frame_rate,
+            "image_width": sequence_info.image_width,
+            "image_height": sequence_info.image_height,
+        }
+    )
+    _write_json(manifest_path, manifest)

@@ -58,6 +58,8 @@ python -m motlab.app.cli_main run --paper sort --dry-run
 python -m motlab.app.cli_main run --paper sort --dry-run --output-root outputs/runs
 python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output .tmp/sort_results.txt
 python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output-root outputs/runs --as-run-folder
+python -m motlab.app.cli_main inspect-mot-sequence --sequence-dir datasets/MOT17/train/MOT17-02-FRCNN
+python -m motlab.app.cli_main run-sort-sequence --sequence-dir datasets/MOT17/train/MOT17-02-FRCNN --output-root outputs/runs
 python -m motlab.app.cli_main export-trackeval-layout --run-dir outputs/runs/<run_id> --sequence-name MOT17-02 --output-root outputs/trackeval
 python -m motlab.app.cli_main check-trackeval --trackeval-root third_party/TrackEval
 python -m motlab.app.cli_main prepare-trackeval --trackeval-root third_party/TrackEval
@@ -80,6 +82,26 @@ When `run-sort-mot` is executed with `--as-run-folder`, it creates a timestamped
 - `paper_config.yaml`
 - `environment.json`
 - `run_manifest.json`
+
+## MOTChallenge Sequence Execution
+
+The project can inspect and run SORT on an already downloaded MOTChallenge sequence folder. Dataset download is not automated.
+
+```powershell
+python -m motlab.app.cli_main inspect-mot-sequence --sequence-dir datasets/MOT17/train/MOT17-02-FRCNN
+python -m motlab.app.cli_main run-sort-sequence --sequence-dir datasets/MOT17/train/MOT17-02-FRCNN --output-root outputs/runs
+```
+
+`run-sort-sequence` reads the sequence metadata from `seqinfo.ini` and uses `det/det.txt` public detections. It does not execute Faster R-CNN, YOLO, or TrackEval.
+
+The generated run folder follows the same SORT MOT run structure:
+
+- `tracks.txt`
+- `paper_config.yaml`
+- `environment.json`
+- `run_manifest.json`
+
+The manifest records sequence metadata such as sequence name, sequence directory, sequence length, frame rate, and image size.
 
 ## TrackEval Layout Export
 
@@ -196,6 +218,7 @@ Implemented:
 - SORT single-track lifecycle object
 - Full frame-level multi-object SortTracker
 - MOT public detection based SORT pipeline
+- MOTChallenge sequence adapter and sequence run CLI
 
 Not yet implemented:
 

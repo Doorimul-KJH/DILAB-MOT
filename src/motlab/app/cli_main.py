@@ -12,6 +12,7 @@ if __package__ in {None, ""}:
 
 from motlab.core.experiment_runner import ExperimentRunner
 from motlab.core.registry import PaperPresetRegistry
+from motlab.datasets.motchallenge import load_motchallenge_sequence_info
 from motlab.evaluation.trackeval_layout import export_sort_run_to_trackeval_layout
 from motlab.evaluation.trackeval_runner import (
     build_trackeval_mot_command,
@@ -22,6 +23,7 @@ from motlab.evaluation.trackeval_setup import prepare_trackeval
 from motlab.pipelines.sort_mot_pipeline import (
     run_sort_mot_experiment,
     run_sort_on_mot_detections,
+    run_sort_on_mot_sequence,
 )
 
 
@@ -70,6 +72,23 @@ def build_parser() -> argparse.ArgumentParser:
     sort_mot_parser.add_argument("--min-hits", type=int, default=3)
     sort_mot_parser.add_argument("--iou-threshold", type=float, default=0.3)
     sort_mot_parser.add_argument("--max-frame", type=int)
+
+    inspect_sequence_parser = subparsers.add_parser(
+        "inspect-mot-sequence",
+        help="Inspect one local MOTChallenge sequence directory.",
+    )
+    inspect_sequence_parser.add_argument("--sequence-dir", required=True)
+
+    sort_sequence_parser = subparsers.add_parser(
+        "run-sort-sequence",
+        help="Run SORT on one MOTChallenge sequence directory's public detections.",
+    )
+    sort_sequence_parser.add_argument("--sequence-dir", required=True)
+    sort_sequence_parser.add_argument("--output-root", default="outputs/runs")
+    sort_sequence_parser.add_argument("--min-confidence", type=float, default=0.0)
+    sort_sequence_parser.add_argument("--max-age", type=int, default=1)
+    sort_sequence_parser.add_argument("--min-hits", type=int, default=3)
+    sort_sequence_parser.add_argument("--iou-threshold", type=float, default=0.3)
 
     trackeval_parser = subparsers.add_parser(
         "export-trackeval-layout",
@@ -156,6 +175,17 @@ def main(argv: list[str] | None = None) -> int:
             min_hits=args.min_hits,
             iou_threshold=args.iou_threshold,
             max_frame=args.max_frame,
+        )
+    if args.command == "inspect-mot-sequence":
+        return _handle_inspect_mot_sequence(sequence_dir=args.sequence_dir)
+    if args.command == "run-sort-sequence":
+        return _handle_run_sort_sequence(
+            sequence_dir=args.sequence_dir,
+            output_root=args.output_root,
+            min_confidence=args.min_confidence,
+            max_age=args.max_age,
+            min_hits=args.min_hits,
+            iou_threshold=args.iou_threshold,
         )
     if args.command == "export-trackeval-layout":
         return _handle_export_trackeval_layout(
@@ -291,6 +321,55 @@ def _handle_run_sort_mot(
     print(f"Processed frames: {result.frame_count}")
     print(f"Input detections: {result.input_detection_count}")
     print(f"Output track rows: {result.output_track_count}")
+    return 0
+
+
+def _handle_inspect_mot_sequence(sequence_dir: str) -> int:
+    info = load_motchallenge_sequence_info(
+        sequence_dir,
+        require_detection=True,
+        require_gt=False,
+    )
+
+    print("MOTChallenge sequence inspection completed.")
+    print(f"sequence_name: {info.name}")
+    print(f"sequence_dir: {info.sequence_dir}")
+    print(f"detection_path: {info.detection_path}")
+    print(f"gt_path: {info.gt_path}")
+    print(f"seq_length: {info.seq_length}")
+    print(f"frame_rate: {info.frame_rate}")
+    print(f"image_size: {_format_image_size(info.image_width, info.image_height)}")
+    print(f"image_dir: {info.image_dir}")
+    return 0
+
+
+def _handle_run_sort_sequence(
+    sequence_dir: str,
+    output_root: str,
+    min_confidence: float,
+    max_age: int,
+    min_hits: int,
+    iou_threshold: float,
+) -> int:
+    sequence_result = run_sort_on_mot_sequence(
+        sequence_dir=sequence_dir,
+        output_root=output_root,
+        min_confidence=min_confidence,
+        max_age=max_age,
+        min_hits=min_hits,
+        iou_threshold=iou_threshold,
+    )
+    info = sequence_result.sequence_info
+    experiment_result = sequence_result.experiment_result
+    pipeline_result = experiment_result.pipeline_result
+
+    print("SORT MOTChallenge sequence run completed.")
+    print(f"sequence_name: {info.name}")
+    print(f"output_dir: {experiment_result.output_dir}")
+    print(f"tracks_path: {experiment_result.tracks_path}")
+    print(f"processed frames: {pipeline_result.frame_count}")
+    print(f"input detections: {pipeline_result.input_detection_count}")
+    print(f"output track rows: {pipeline_result.output_track_count}")
     return 0
 
 
@@ -440,6 +519,12 @@ def _format_command_readable(command: list[str]) -> list[str]:
             lines.append(f"    {value}")
         index += 2
     return lines
+
+
+def _format_image_size(width: int | None, height: int | None) -> str:
+    if width is None or height is None:
+        return "None"
+    return f"{width}x{height}"
 
 
 if __name__ == "__main__":
