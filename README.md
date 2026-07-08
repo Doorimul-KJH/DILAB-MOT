@@ -58,6 +58,7 @@ python -m motlab.app.cli_main run --paper sort --dry-run
 python -m motlab.app.cli_main run --paper sort --dry-run --output-root outputs/runs
 python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output .tmp/sort_results.txt
 python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output-root outputs/runs --as-run-folder
+python -m motlab.app.cli_main export-trackeval-layout --run-dir outputs/runs/<run_id> --sequence-name MOT17-02 --output-root outputs/trackeval
 ```
 
 The dry-run command creates a folder under `outputs/runs/` with:
@@ -74,6 +75,28 @@ When `run-sort-mot` is executed with `--as-run-folder`, it creates a timestamped
 - `paper_config.yaml`
 - `environment.json`
 - `run_manifest.json`
+
+## TrackEval Layout Export
+
+The project can export an existing SORT MOT run folder into a TrackEval-friendly result layout. This step only prepares files for a future TrackEval run; it does not download or execute TrackEval.
+
+```powershell
+python -m motlab.app.cli_main export-trackeval-layout --run-dir outputs/runs/<run_id> --sequence-name MOT17-02 --output-root outputs/trackeval
+```
+
+The exported layout is:
+
+```text
+outputs/trackeval/sort/<run_id>/
+  trackers/
+    sort/
+      data/
+        MOT17-02.txt
+  seqmaps/
+    MOT17-test.txt
+```
+
+`MOT17-02.txt` is copied from the run folder's `tracks.txt`. The seqmap contains a `name` header and the selected sequence name.
 
 ## MOTChallenge Format Support
 

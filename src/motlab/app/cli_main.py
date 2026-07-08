@@ -12,6 +12,7 @@ if __package__ in {None, ""}:
 
 from motlab.core.experiment_runner import ExperimentRunner
 from motlab.core.registry import PaperPresetRegistry
+from motlab.evaluation.trackeval_layout import export_sort_run_to_trackeval_layout
 from motlab.pipelines.sort_mot_pipeline import (
     run_sort_mot_experiment,
     run_sort_on_mot_detections,
@@ -64,6 +65,17 @@ def build_parser() -> argparse.ArgumentParser:
     sort_mot_parser.add_argument("--iou-threshold", type=float, default=0.3)
     sort_mot_parser.add_argument("--max-frame", type=int)
 
+    trackeval_parser = subparsers.add_parser(
+        "export-trackeval-layout",
+        help="Export a SORT run folder into a TrackEval-friendly result layout.",
+    )
+    trackeval_parser.add_argument("--run-dir", required=True, help="SORT MOT run folder path.")
+    trackeval_parser.add_argument("--sequence-name", required=True, help="MOT sequence name.")
+    trackeval_parser.add_argument("--output-root", default="outputs/trackeval")
+    trackeval_parser.add_argument("--tracker-name", default="sort")
+    trackeval_parser.add_argument("--seqmap-name", default="MOT17-test")
+    trackeval_parser.add_argument("--overwrite", action="store_true")
+
     return parser
 
 
@@ -97,6 +109,15 @@ def main(argv: list[str] | None = None) -> int:
             min_hits=args.min_hits,
             iou_threshold=args.iou_threshold,
             max_frame=args.max_frame,
+        )
+    if args.command == "export-trackeval-layout":
+        return _handle_export_trackeval_layout(
+            run_dir=args.run_dir,
+            sequence_name=args.sequence_name,
+            output_root=args.output_root,
+            tracker_name=args.tracker_name,
+            seqmap_name=args.seqmap_name,
+            overwrite=args.overwrite,
         )
 
     parser.error(f"Unknown command: {args.command}")
@@ -195,6 +216,30 @@ def _handle_run_sort_mot(
     print(f"Processed frames: {result.frame_count}")
     print(f"Input detections: {result.input_detection_count}")
     print(f"Output track rows: {result.output_track_count}")
+    return 0
+
+
+def _handle_export_trackeval_layout(
+    run_dir: str,
+    sequence_name: str,
+    output_root: str,
+    tracker_name: str,
+    seqmap_name: str,
+    overwrite: bool,
+) -> int:
+    result = export_sort_run_to_trackeval_layout(
+        run_dir=run_dir,
+        sequence_name=sequence_name,
+        output_root=output_root,
+        tracker_name=tracker_name,
+        seqmap_name=seqmap_name,
+        overwrite=overwrite,
+    )
+
+    print("TrackEval layout export completed. TrackEval was not executed.")
+    print(f"Tracker result path: {result.tracker_result_path}")
+    print(f"Seqmap path: {result.seqmap_path}")
+    print(f"Tracks source path: {result.tracks_source_path}")
     return 0
 
 
