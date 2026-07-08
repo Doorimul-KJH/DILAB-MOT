@@ -24,6 +24,8 @@ dist/
 !/outputs/.gitkeep
 /third_party/*
 !/third_party/.gitkeep
+/third_party/TrackEval/
+/third_party/TrackEval_SETUP.json
 
 # Model weights
 *.pt

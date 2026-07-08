@@ -17,6 +17,7 @@ from motlab.evaluation.trackeval_runner import (
     build_trackeval_mot_command,
     check_trackeval_available,
 )
+from motlab.evaluation.trackeval_setup import prepare_trackeval
 from motlab.pipelines.sort_mot_pipeline import (
     run_sort_mot_experiment,
     run_sort_on_mot_detections,
@@ -96,6 +97,18 @@ def build_parser() -> argparse.ArgumentParser:
     build_trackeval_parser.add_argument("--seqmap-file", required=True)
     build_trackeval_parser.add_argument("--tracker-name", default="sort")
 
+    prepare_trackeval_parser = subparsers.add_parser(
+        "prepare-trackeval",
+        help="Explicitly prepare a local TrackEval checkout.",
+    )
+    prepare_trackeval_parser.add_argument("--trackeval-root", default="third_party/TrackEval")
+    prepare_trackeval_parser.add_argument(
+        "--repo-url",
+        default="https://github.com/JonathonLuiten/TrackEval.git",
+    )
+    prepare_trackeval_parser.add_argument("--ref", default="master")
+    prepare_trackeval_parser.add_argument("--clone", action="store_true")
+
     return parser
 
 
@@ -148,6 +161,13 @@ def main(argv: list[str] | None = None) -> int:
             trackers_folder=args.trackers_folder,
             seqmap_file=args.seqmap_file,
             tracker_name=args.tracker_name,
+        )
+    if args.command == "prepare-trackeval":
+        return _handle_prepare_trackeval(
+            trackeval_root=args.trackeval_root,
+            repo_url=args.repo_url,
+            ref=args.ref,
+            clone=args.clone,
         )
 
     parser.error(f"Unknown command: {args.command}")
@@ -306,6 +326,33 @@ def _handle_build_trackeval_command(
     print()
     print("TrackEval command, one-line:")
     print(" ".join(command))
+    return 0
+
+
+def _handle_prepare_trackeval(
+    trackeval_root: str,
+    repo_url: str,
+    ref: str,
+    clone: bool,
+) -> int:
+    result = prepare_trackeval(
+        trackeval_root=trackeval_root,
+        repo_url=repo_url,
+        ref=ref,
+        clone=clone,
+    )
+
+    print("TrackEval preparation completed.")
+    print(f"cloned: {result.cloned}")
+    print(f"already_exists: {result.already_exists}")
+    print(f"trackeval_root: {result.trackeval_root}")
+    print(f"repo_url: {result.repo_url}")
+    print(f"ref: {result.ref}")
+    print(f"commit_hash: {result.commit_hash}")
+    print(f"setup_info_path: {result.setup_info_path}")
+    print(f"message: {result.message}")
+    print("Next check command:")
+    print(f"python -m motlab.app.cli_main check-trackeval --trackeval-root {result.trackeval_root}")
     return 0
 
 

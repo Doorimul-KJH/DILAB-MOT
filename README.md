@@ -60,6 +60,8 @@ python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.t
 python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output-root outputs/runs --as-run-folder
 python -m motlab.app.cli_main export-trackeval-layout --run-dir outputs/runs/<run_id> --sequence-name MOT17-02 --output-root outputs/trackeval
 python -m motlab.app.cli_main check-trackeval --trackeval-root third_party/TrackEval
+python -m motlab.app.cli_main prepare-trackeval --trackeval-root third_party/TrackEval
+python -m motlab.app.cli_main prepare-trackeval --trackeval-root third_party/TrackEval --clone
 python -m motlab.app.cli_main build-trackeval-command --trackeval-root third_party/TrackEval --gt-folder datasets/MOT17/train --trackers-folder outputs/trackeval/sort/<run_id>/trackers --seqmap-file outputs/trackeval/sort/<run_id>/seqmaps/MOT17-test.txt --tracker-name sort
 ```
 
@@ -104,9 +106,24 @@ outputs/trackeval/sort/<run_id>/
 
 ## TrackEval Preparation
 
-The current TrackEval support is a pre-execution wrapper/check stage only. It does not download TrackEval, does not clone repositories, does not download MOT17 ground truth, and does not run quantitative evaluation yet.
+The current TrackEval support is a pre-execution wrapper/check stage only. It does not download MOT17 ground truth and does not run quantitative evaluation yet.
 
-Users must prepare `third_party/TrackEval` manually before real evaluation. The availability check reports whether the local root and `scripts/run_mot_challenge.py` are present and whether the script can show `--help`.
+`check-trackeval` only checks whether TrackEval is available. It never clones or installs TrackEval.
+
+```powershell
+python -m motlab.app.cli_main check-trackeval --trackeval-root third_party/TrackEval
+```
+
+TrackEval can be prepared only when the user explicitly runs `prepare-trackeval --clone`.
+
+```powershell
+python -m motlab.app.cli_main prepare-trackeval --trackeval-root third_party/TrackEval
+python -m motlab.app.cli_main prepare-trackeval --trackeval-root third_party/TrackEval --clone
+```
+
+Without `--clone`, `prepare-trackeval` prints the explicit clone guidance and writes setup metadata only. With `--clone`, it clones `https://github.com/JonathonLuiten/TrackEval.git` at `master` into `third_party/TrackEval` if that directory does not already exist.
+
+`third_party/TrackEval` is ignored by Git and must not be committed. After preparation, run:
 
 ```powershell
 python -m motlab.app.cli_main check-trackeval --trackeval-root third_party/TrackEval
