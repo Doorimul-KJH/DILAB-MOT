@@ -80,8 +80,80 @@ def test_cli_check_trackeval_does_not_fail_for_missing_root(tmp_path):
     )
 
     assert completed.returncode == 0
+    assert "TrackEval availability check completed. TrackEval root was not found." in completed.stdout
     assert "exists: False" in completed.stdout
+    assert "script_path: None" in completed.stdout
+    assert "can_import_or_help: False" in completed.stdout
+    assert "message:" in completed.stdout
     assert "not found" in completed.stdout
+
+
+def test_cli_check_trackeval_reports_available_when_help_succeeds(tmp_path):
+    script_path = tmp_path / "TrackEval" / "scripts" / "run_mot_challenge.py"
+    script_path.parent.mkdir(parents=True)
+    script_path.write_text(
+        "import argparse\n"
+        "parser = argparse.ArgumentParser()\n"
+        "parser.add_argument('--GT_FOLDER')\n"
+        "parser.parse_args()\n",
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "motlab.app.cli_main",
+            "check-trackeval",
+            "--trackeval-root",
+            str(tmp_path / "TrackEval"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0
+    assert "TrackEval availability check completed. TrackEval appears available." in completed.stdout
+    assert "exists: True" in completed.stdout
+    assert f"script_path: {script_path}" in completed.stdout
+    assert "can_import_or_help: True" in completed.stdout
+    assert "message:" in completed.stdout
+
+
+def test_cli_check_trackeval_reports_failed_help_check(tmp_path):
+    script_path = tmp_path / "TrackEval" / "scripts" / "run_mot_challenge.py"
+    script_path.parent.mkdir(parents=True)
+    script_path.write_text(
+        "import sys\n"
+        "print('help failed')\n"
+        "sys.exit(2)\n",
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "motlab.app.cli_main",
+            "check-trackeval",
+            "--trackeval-root",
+            str(tmp_path / "TrackEval"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0
+    assert (
+        "TrackEval availability check completed. TrackEval was found, "
+        "but help/import check failed."
+    ) in completed.stdout
+    assert "exists: True" in completed.stdout
+    assert f"script_path: {script_path}" in completed.stdout
+    assert "can_import_or_help: False" in completed.stdout
+    assert "message:" in completed.stdout
 
 
 def test_cli_build_trackeval_command_prints_command(tmp_path):

@@ -114,6 +114,8 @@ The current TrackEval support is a pre-execution wrapper/check stage only. It do
 python -m motlab.app.cli_main check-trackeval --trackeval-root third_party/TrackEval
 ```
 
+The status line reports whether the root is missing, available, or found with a failed help/import check.
+
 TrackEval can be prepared only when the user explicitly runs `prepare-trackeval --clone`.
 
 ```powershell

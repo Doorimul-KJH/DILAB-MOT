@@ -296,7 +296,7 @@ def _handle_export_trackeval_layout(
 def _handle_check_trackeval(trackeval_root: str) -> int:
     result = check_trackeval_available(trackeval_root=trackeval_root)
 
-    print("TrackEval availability check completed. TrackEval was not installed or cloned.")
+    print(_format_trackeval_status_message(exists=result.exists, can_import_or_help=result.can_import_or_help))
     print(f"trackeval_root: {result.trackeval_root}")
     print(f"exists: {result.exists}")
     print(f"script_path: {result.script_path}")
@@ -354,6 +354,17 @@ def _handle_prepare_trackeval(
     print("Next check command:")
     print(f"python -m motlab.app.cli_main check-trackeval --trackeval-root {result.trackeval_root}")
     return 0
+
+
+def _format_trackeval_status_message(exists: bool, can_import_or_help: bool) -> str:
+    if not exists:
+        return "TrackEval availability check completed. TrackEval root was not found."
+    if can_import_or_help:
+        return "TrackEval availability check completed. TrackEval appears available."
+    return (
+        "TrackEval availability check completed. TrackEval was found, "
+        "but help/import check failed."
+    )
 
 
 def _format_command_readable(command: list[str]) -> list[str]:
