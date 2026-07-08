@@ -118,6 +118,8 @@ The command builder prints a candidate TrackEval MOTChallenge command without ex
 python -m motlab.app.cli_main build-trackeval-command --trackeval-root third_party/TrackEval --gt-folder datasets/MOT17/train --trackers-folder outputs/trackeval/sort/<run_id>/trackers --seqmap-file outputs/trackeval/sort/<run_id>/seqmaps/MOT17-test.txt --tracker-name sort
 ```
 
+The output includes a readable multi-line command for option review and a copyable one-line command.
+
 This is an initial wrapper. TrackEval options must be validated against the local TrackEval checkout before real evaluation is enabled. Actual TrackEval execution and result parsing are planned for a later step.
 
 ## MOTChallenge Format Support

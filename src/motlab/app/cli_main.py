@@ -300,9 +300,29 @@ def _handle_build_trackeval_command(
         tracker_name=tracker_name,
     )
 
-    print("TrackEval command:")
+    print("TrackEval command, readable:")
+    for line in _format_command_readable(command):
+        print(line)
+    print()
+    print("TrackEval command, one-line:")
     print(" ".join(command))
     return 0
+
+
+def _format_command_readable(command: list[str]) -> list[str]:
+    if len(command) < 2:
+        return [f"  {part}" for part in command]
+
+    lines = [f"  {command[0]}", f"  {command[1]}"]
+    index = 2
+    while index < len(command):
+        option = command[index]
+        value = command[index + 1] if index + 1 < len(command) else ""
+        lines.append(f"  {option}")
+        if value:
+            lines.append(f"    {value}")
+        index += 2
+    return lines
 
 
 if __name__ == "__main__":

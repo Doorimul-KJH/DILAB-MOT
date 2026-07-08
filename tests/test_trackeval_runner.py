@@ -108,6 +108,18 @@ def test_cli_build_trackeval_command_prints_command(tmp_path):
     )
 
     assert completed.returncode == 0
-    assert "TrackEval command:" in completed.stdout
-    assert "--GT_FOLDER" in completed.stdout
-    assert "--TRACKERS_TO_EVAL sort" in completed.stdout
+    stdout_lines = completed.stdout.splitlines()
+
+    assert "TrackEval command, readable:" in completed.stdout
+    assert "TrackEval command, one-line:" in completed.stdout
+    assert "  --GT_FOLDER" in stdout_lines
+    assert "  --TRACKERS_FOLDER" in stdout_lines
+    assert "  --SEQMAP_FILE" in stdout_lines
+    assert "  --TRACKERS_TO_EVAL" in stdout_lines
+
+    one_line_index = stdout_lines.index("TrackEval command, one-line:")
+    one_line_command = stdout_lines[one_line_index + 1]
+    assert "--GT_FOLDER" in one_line_command
+    assert "--TRACKERS_FOLDER" in one_line_command
+    assert "--SEQMAP_FILE" in one_line_command
+    assert "--TRACKERS_TO_EVAL sort" in one_line_command
