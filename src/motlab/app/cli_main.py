@@ -16,6 +16,7 @@ from motlab.evaluation.trackeval_layout import export_sort_run_to_trackeval_layo
 from motlab.evaluation.trackeval_runner import (
     build_trackeval_mot_command,
     check_trackeval_available,
+    run_trackeval_mot_command,
 )
 from motlab.evaluation.trackeval_setup import prepare_trackeval
 from motlab.pipelines.sort_mot_pipeline import (
@@ -97,6 +98,19 @@ def build_parser() -> argparse.ArgumentParser:
     build_trackeval_parser.add_argument("--seqmap-file", required=True)
     build_trackeval_parser.add_argument("--tracker-name", default="sort")
 
+    run_trackeval_parser = subparsers.add_parser(
+        "run-trackeval",
+        help="Dry-run or explicitly execute a TrackEval MOTChallenge command.",
+    )
+    run_trackeval_parser.add_argument("--trackeval-root", required=True)
+    run_trackeval_parser.add_argument("--gt-folder", required=True)
+    run_trackeval_parser.add_argument("--trackers-folder", required=True)
+    run_trackeval_parser.add_argument("--seqmap-file", required=True)
+    run_trackeval_parser.add_argument("--tracker-name", default="sort")
+    run_trackeval_parser.add_argument("--output-dir", required=True)
+    run_trackeval_parser.add_argument("--execute", action="store_true")
+    run_trackeval_parser.add_argument("--timeout-seconds", type=int, default=300)
+
     prepare_trackeval_parser = subparsers.add_parser(
         "prepare-trackeval",
         help="Explicitly prepare a local TrackEval checkout.",
@@ -168,6 +182,17 @@ def main(argv: list[str] | None = None) -> int:
             repo_url=args.repo_url,
             ref=args.ref,
             clone=args.clone,
+        )
+    if args.command == "run-trackeval":
+        return _handle_run_trackeval(
+            trackeval_root=args.trackeval_root,
+            gt_folder=args.gt_folder,
+            trackers_folder=args.trackers_folder,
+            seqmap_file=args.seqmap_file,
+            tracker_name=args.tracker_name,
+            output_dir=args.output_dir,
+            execute=args.execute,
+            timeout_seconds=args.timeout_seconds,
         )
 
     parser.error(f"Unknown command: {args.command}")
@@ -353,6 +378,40 @@ def _handle_prepare_trackeval(
     print(f"message: {result.message}")
     print("Next check command:")
     print(f"python -m motlab.app.cli_main check-trackeval --trackeval-root {result.trackeval_root}")
+    return 0
+
+
+def _handle_run_trackeval(
+    trackeval_root: str,
+    gt_folder: str,
+    trackers_folder: str,
+    seqmap_file: str,
+    tracker_name: str,
+    output_dir: str,
+    execute: bool,
+    timeout_seconds: int,
+) -> int:
+    command = build_trackeval_mot_command(
+        trackeval_root=trackeval_root,
+        gt_folder=gt_folder,
+        trackers_folder=trackers_folder,
+        seqmap_file=seqmap_file,
+        tracker_name=tracker_name,
+    )
+    result = run_trackeval_mot_command(
+        command=command,
+        output_dir=output_dir,
+        execute=execute,
+        timeout_seconds=timeout_seconds,
+    )
+
+    print("TrackEval run wrapper completed.")
+    print(f"executed: {result.executed}")
+    print(f"returncode: {result.returncode}")
+    print(f"command_path: {result.command_path}")
+    print(f"stdout_path: {result.stdout_path}")
+    print(f"stderr_path: {result.stderr_path}")
+    print(f"message: {result.message}")
     return 0
 
 

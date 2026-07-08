@@ -63,6 +63,7 @@ python -m motlab.app.cli_main check-trackeval --trackeval-root third_party/Track
 python -m motlab.app.cli_main prepare-trackeval --trackeval-root third_party/TrackEval
 python -m motlab.app.cli_main prepare-trackeval --trackeval-root third_party/TrackEval --clone
 python -m motlab.app.cli_main build-trackeval-command --trackeval-root third_party/TrackEval --gt-folder datasets/MOT17/train --trackers-folder outputs/trackeval/sort/<run_id>/trackers --seqmap-file outputs/trackeval/sort/<run_id>/seqmaps/MOT17-test.txt --tracker-name sort
+python -m motlab.app.cli_main run-trackeval --trackeval-root third_party/TrackEval --gt-folder datasets/MOT17/train --trackers-folder outputs/trackeval/sort/<run_id>/trackers --seqmap-file outputs/trackeval/sort/<run_id>/seqmaps/MOT17-test.txt --tracker-name sort --output-dir outputs/trackeval_logs/<run_id>
 ```
 
 The dry-run command creates a folder under `outputs/runs/` with:
@@ -139,7 +140,33 @@ python -m motlab.app.cli_main build-trackeval-command --trackeval-root third_par
 
 The output includes a readable multi-line command for option review and a copyable one-line command.
 
-This is an initial wrapper. TrackEval options must be validated against the local TrackEval checkout before real evaluation is enabled. Actual TrackEval execution and result parsing are planned for a later step.
+This is an initial wrapper. TrackEval options must be validated against the local TrackEval checkout before a full evaluation workflow is enabled. Result parsing is planned for a later step.
+
+## TrackEval Execution Wrapper
+
+`run-trackeval` builds the MOTChallenge TrackEval command and stores execution logs. By default it is a dry-run and does not execute TrackEval.
+
+```powershell
+python -m motlab.app.cli_main run-trackeval --trackeval-root third_party/TrackEval --gt-folder datasets/MOT17/train --trackers-folder outputs/trackeval/sort/<run_id>/trackers --seqmap-file outputs/trackeval/sort/<run_id>/seqmaps/MOT17-test.txt --tracker-name sort --output-dir outputs/trackeval_logs/<run_id>
+```
+
+Dry-run creates:
+
+- `command.txt`
+
+Actual execution happens only when `--execute` is provided:
+
+```powershell
+python -m motlab.app.cli_main run-trackeval --trackeval-root third_party/TrackEval --gt-folder datasets/MOT17/train --trackers-folder outputs/trackeval/sort/<run_id>/trackers --seqmap-file outputs/trackeval/sort/<run_id>/seqmaps/MOT17-test.txt --tracker-name sort --output-dir outputs/trackeval_logs/<run_id> --execute
+```
+
+Execution stores:
+
+- `command.txt`
+- `stdout.txt`
+- `stderr.txt`
+
+If the MOT17 GT dataset path is not prepared, real evaluation can fail. This stage records command/stdout/stderr only; metric parsing is planned for a later step.
 
 ## MOTChallenge Format Support
 
@@ -172,6 +199,6 @@ Implemented:
 
 Not yet implemented:
 
-- TrackEval execution and result parsing
+- TrackEval metric parsing and validated full evaluation workflow
 - Faster R-CNN execution
 - GUI

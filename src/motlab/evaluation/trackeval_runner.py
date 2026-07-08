@@ -19,6 +19,21 @@ class TrackEvalCheckResult:
     message: str
 
 
+@dataclass(frozen=True)
+class TrackEvalRunResult:
+    """Result returned by a TrackEval command dry-run or execution."""
+
+    command: list[str]
+    executed: bool
+    returncode: int | None
+    stdout_path: Path | None
+    stderr_path: Path | None
+    command_path: Path | None
+    stdout: str | None
+    stderr: str | None
+    message: str
+
+
 def check_trackeval_available(
     trackeval_root: str | Path = "third_party/TrackEval",
 ) -> TrackEvalCheckResult:
@@ -108,6 +123,83 @@ def build_trackeval_mot_command(
         "--TRACKERS_TO_EVAL",
         tracker_name,
     ]
+
+
+def run_trackeval_mot_command(
+    command: list[str],
+    output_dir: str | Path,
+    execute: bool = False,
+    timeout_seconds: int = 300,
+) -> TrackEvalRunResult:
+    """Dry-run or execute a TrackEval command and persist command/stdout/stderr logs."""
+    if not command:
+        raise ValueError("TrackEval command must not be empty.")
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    command_path = output_path / "command.txt"
+    stdout_path = output_path / "stdout.txt"
+    stderr_path = output_path / "stderr.txt"
+    command_path.write_text(" ".join(command) + "\n", encoding="utf-8")
+
+    if not execute:
+        return TrackEvalRunResult(
+            command=command,
+            executed=False,
+            returncode=None,
+            stdout_path=None,
+            stderr_path=None,
+            command_path=command_path,
+            stdout=None,
+            stderr=None,
+            message="Dry run only. TrackEval was not executed.",
+        )
+
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
+        stdout = completed.stdout
+        stderr = completed.stderr
+        stdout_path.write_text(stdout, encoding="utf-8")
+        stderr_path.write_text(stderr, encoding="utf-8")
+        if completed.returncode == 0:
+            message = "TrackEval command executed successfully."
+        else:
+            message = f"TrackEval command finished with non-zero exit code {completed.returncode}."
+
+        return TrackEvalRunResult(
+            command=command,
+            executed=True,
+            returncode=completed.returncode,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            command_path=command_path,
+            stdout=stdout,
+            stderr=stderr,
+            message=message,
+        )
+    except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout if isinstance(exc.stdout, str) else ""
+        stderr = exc.stderr if isinstance(exc.stderr, str) else ""
+        timeout_message = f"TrackEval command timed out after {timeout_seconds} seconds."
+        stdout_path.write_text(stdout, encoding="utf-8")
+        stderr_path.write_text((stderr + "\n" if stderr else "") + timeout_message + "\n", encoding="utf-8")
+        return TrackEvalRunResult(
+            command=command,
+            executed=True,
+            returncode=None,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            command_path=command_path,
+            stdout=stdout,
+            stderr=(stderr + "\n" if stderr else "") + timeout_message + "\n",
+            message=timeout_message,
+        )
 
 
 def _find_run_mot_script(trackeval_root: Path) -> Path | None:
