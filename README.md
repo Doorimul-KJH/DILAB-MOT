@@ -59,6 +59,8 @@ python -m motlab.app.cli_main run --paper sort --dry-run --output-root outputs/r
 python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output .tmp/sort_results.txt
 python -m motlab.app.cli_main run-sort-mot --detections tests/fixtures/mot/det.txt --output-root outputs/runs --as-run-folder
 python -m motlab.app.cli_main export-trackeval-layout --run-dir outputs/runs/<run_id> --sequence-name MOT17-02 --output-root outputs/trackeval
+python -m motlab.app.cli_main check-trackeval --trackeval-root third_party/TrackEval
+python -m motlab.app.cli_main build-trackeval-command --trackeval-root third_party/TrackEval --gt-folder datasets/MOT17/train --trackers-folder outputs/trackeval/sort/<run_id>/trackers --seqmap-file outputs/trackeval/sort/<run_id>/seqmaps/MOT17-test.txt --tracker-name sort
 ```
 
 The dry-run command creates a folder under `outputs/runs/` with:
@@ -84,6 +86,8 @@ The project can export an existing SORT MOT run folder into a TrackEval-friendly
 python -m motlab.app.cli_main export-trackeval-layout --run-dir outputs/runs/<run_id> --sequence-name MOT17-02 --output-root outputs/trackeval
 ```
 
+`<run_id>` is a placeholder. Replace it with the actual folder name printed by `run-sort-mot`.
+
 The exported layout is:
 
 ```text
@@ -97,6 +101,24 @@ outputs/trackeval/sort/<run_id>/
 ```
 
 `MOT17-02.txt` is copied from the run folder's `tracks.txt`. The seqmap contains a `name` header and the selected sequence name.
+
+## TrackEval Preparation
+
+The current TrackEval support is a pre-execution wrapper/check stage only. It does not download TrackEval, does not clone repositories, does not download MOT17 ground truth, and does not run quantitative evaluation yet.
+
+Users must prepare `third_party/TrackEval` manually before real evaluation. The availability check reports whether the local root and `scripts/run_mot_challenge.py` are present and whether the script can show `--help`.
+
+```powershell
+python -m motlab.app.cli_main check-trackeval --trackeval-root third_party/TrackEval
+```
+
+The command builder prints a candidate TrackEval MOTChallenge command without executing it:
+
+```powershell
+python -m motlab.app.cli_main build-trackeval-command --trackeval-root third_party/TrackEval --gt-folder datasets/MOT17/train --trackers-folder outputs/trackeval/sort/<run_id>/trackers --seqmap-file outputs/trackeval/sort/<run_id>/seqmaps/MOT17-test.txt --tracker-name sort
+```
+
+This is an initial wrapper. TrackEval options must be validated against the local TrackEval checkout before real evaluation is enabled. Actual TrackEval execution and result parsing are planned for a later step.
 
 ## MOTChallenge Format Support
 
@@ -129,6 +151,6 @@ Implemented:
 
 Not yet implemented:
 
-- TrackEval integration
+- TrackEval execution and result parsing
 - Faster R-CNN execution
 - GUI

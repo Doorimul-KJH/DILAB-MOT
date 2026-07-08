@@ -13,6 +13,10 @@ if __package__ in {None, ""}:
 from motlab.core.experiment_runner import ExperimentRunner
 from motlab.core.registry import PaperPresetRegistry
 from motlab.evaluation.trackeval_layout import export_sort_run_to_trackeval_layout
+from motlab.evaluation.trackeval_runner import (
+    build_trackeval_mot_command,
+    check_trackeval_available,
+)
 from motlab.pipelines.sort_mot_pipeline import (
     run_sort_mot_experiment,
     run_sort_on_mot_detections,
@@ -76,6 +80,22 @@ def build_parser() -> argparse.ArgumentParser:
     trackeval_parser.add_argument("--seqmap-name", default="MOT17-test")
     trackeval_parser.add_argument("--overwrite", action="store_true")
 
+    check_trackeval_parser = subparsers.add_parser(
+        "check-trackeval",
+        help="Check whether a local TrackEval checkout is available.",
+    )
+    check_trackeval_parser.add_argument("--trackeval-root", default="third_party/TrackEval")
+
+    build_trackeval_parser = subparsers.add_parser(
+        "build-trackeval-command",
+        help="Build a TrackEval MOTChallenge command without executing it.",
+    )
+    build_trackeval_parser.add_argument("--trackeval-root", required=True)
+    build_trackeval_parser.add_argument("--gt-folder", required=True)
+    build_trackeval_parser.add_argument("--trackers-folder", required=True)
+    build_trackeval_parser.add_argument("--seqmap-file", required=True)
+    build_trackeval_parser.add_argument("--tracker-name", default="sort")
+
     return parser
 
 
@@ -118,6 +138,16 @@ def main(argv: list[str] | None = None) -> int:
             tracker_name=args.tracker_name,
             seqmap_name=args.seqmap_name,
             overwrite=args.overwrite,
+        )
+    if args.command == "check-trackeval":
+        return _handle_check_trackeval(trackeval_root=args.trackeval_root)
+    if args.command == "build-trackeval-command":
+        return _handle_build_trackeval_command(
+            trackeval_root=args.trackeval_root,
+            gt_folder=args.gt_folder,
+            trackers_folder=args.trackers_folder,
+            seqmap_file=args.seqmap_file,
+            tracker_name=args.tracker_name,
         )
 
     parser.error(f"Unknown command: {args.command}")
@@ -240,6 +270,38 @@ def _handle_export_trackeval_layout(
     print(f"Tracker result path: {result.tracker_result_path}")
     print(f"Seqmap path: {result.seqmap_path}")
     print(f"Tracks source path: {result.tracks_source_path}")
+    return 0
+
+
+def _handle_check_trackeval(trackeval_root: str) -> int:
+    result = check_trackeval_available(trackeval_root=trackeval_root)
+
+    print("TrackEval availability check completed. TrackEval was not installed or cloned.")
+    print(f"trackeval_root: {result.trackeval_root}")
+    print(f"exists: {result.exists}")
+    print(f"script_path: {result.script_path}")
+    print(f"can_import_or_help: {result.can_import_or_help}")
+    print(f"message: {result.message}")
+    return 0
+
+
+def _handle_build_trackeval_command(
+    trackeval_root: str,
+    gt_folder: str,
+    trackers_folder: str,
+    seqmap_file: str,
+    tracker_name: str,
+) -> int:
+    command = build_trackeval_mot_command(
+        trackeval_root=trackeval_root,
+        gt_folder=gt_folder,
+        trackers_folder=trackers_folder,
+        seqmap_file=seqmap_file,
+        tracker_name=tracker_name,
+    )
+
+    print("TrackEval command:")
+    print(" ".join(command))
     return 0
 
 
